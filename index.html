@@ -39,8 +39,153 @@
         }
     </script>
 
-    <!-- External Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <!-- Custom Styles -->
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Glass utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Loaders & Controls */
+        .loader {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            margin-top: -6px;
+            cursor: pointer;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .dark input[type=range]::-webkit-slider-runnable-track {
+            background: #475569;
+        }
+
+        /* --- Directional Hover Button Styles --- */
+        .btn-directional {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            /* Creates stacking context */
+            transition: transform 0.1s ease;
+        }
+
+        .btn-directional:active {
+            transform: scale(0.98);
+        }
+
+        /* Pseudo-element acting as the "curtain" */
+        .btn-directional::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Logic: scale(0) is default hidden state. 
+               We use CSS Vars to determine if we squish X or Y axis based on entry direction */
+            transform: var(--transform-from, scale(0));
+            transform-origin: var(--origin, center);
+
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: -1;
+            border-radius: inherit;
+        }
+
+        /* Hover state: Always full scale (fill the button) */
+        .btn-directional:hover::before {
+            transform: scale(1, 1);
+        }
+
+        /* Colors for Main Analyze Button */
+        #fetchBtn.btn-directional::before {
+            background: #0f172a;
+            /* Very dark slate (almost black) for high contrast against blue */
+        }
+
+        /* Colors for Secondary Buttons (White/Dark ones) */
+        button.btn-directional:not(#fetchBtn)::before {
+            background: #3b82f6;
+            /* Bright Blue */
+        }
+
+        /* Text color transitions */
+        button.btn-directional:not(#fetchBtn):hover span,
+        button.btn-directional:not(#fetchBtn):hover svg {
+            color: white;
+            transition-delay: 0.05s;
+        }
+
+        button.btn-directional:not(#fetchBtn) span,
+        button.btn-directional:not(#fetchBtn) svg {
+            transition: color 0.2s ease;
+        }
+    </style>
 </head>
 
 <body
@@ -68,7 +213,7 @@
             </h1>
         </div>
 
-        <button id="themeToggleBtn"
+        <button onclick="toggleTheme()"
             class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none"
             aria-label="Toggle Dark Mode">
             <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400 hidden dark:block"
@@ -88,6 +233,7 @@
 
         <!-- Hero Section -->
         <div class="max-w-4xl mx-auto text-center mb-10">
+            <!-- pb-2 fixes text clipping for gradients -->
             <h2
                 class="text-3xl md:text-5xl font-extrabold mb-4 pb-2 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
                 Analyze App Store Feedback
@@ -116,7 +262,8 @@
                         <label
                             class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">Region</label>
 
-                        <button id="customSelectTrigger"
+                        <!-- Custom Dropdown Trigger -->
+                        <button id="customSelectTrigger" onclick="toggleCustomSelect()"
                             class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
                             <span class="flex items-center gap-3">
                                 <span id="selectedFlag" class="text-lg">🌍</span>
@@ -130,36 +277,63 @@
                             </svg>
                         </button>
 
+                        <!-- Dropdown Options -->
                         <div id="customSelectOptions"
                             class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]">
                             <!-- Options injected by JS -->
                         </div>
 
+                        <!-- Hidden Input to store value for logic -->
                         <input type="hidden" id="countrySelect" value="auto">
                     </div>
                 </div>
 
-                <!-- Controls -->
+                <!-- Controls Row: Slider & Button -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-6 items-end">
+
+                    <!-- Slider limit -->
                     <div class="md:col-span-8 flex flex-col justify-end pb-1">
                         <div class="flex justify-between items-center mb-2">
                             <label for="limitRange"
                                 class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                 Result Limit
+                                <!-- Info Tooltip -->
+                                <div class="group relative flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 text-slate-400 hover:text-blue-500 cursor-help" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div
+                                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 hidden group-hover:block">
+                                        Apple's public RSS feed provides exactly 50 recent reviews. This slider filters
+                                        the view locally.
+                                        <div
+                                            class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800">
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                             <span id="limitValueDisplay"
                                 class="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">50</span>
                         </div>
-                        <input type="range" id="limitRange" min="10" max="50" step="10" value="50" class="w-full">
+                        <input type="range" id="limitRange" min="10" max="50" step="10" value="50"
+                            oninput="updateLimitDisplay(this.value)" class="w-full">
                         <div class="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
-                            <span>10</span><span>20</span><span>30</span><span>40</span><span>50</span>
+                            <span>10</span>
+                            <span>20</span>
+                            <span>30</span>
+                            <span>40</span>
+                            <span>50</span>
                         </div>
                     </div>
 
                     <!-- Analyze Button -->
                     <div class="md:col-span-4">
-                        <button id="fetchBtn"
+                        <button onclick="fetchReviews()" id="fetchBtn"
                             class="btn-directional w-full bg-blue-600 text-white font-semibold rounded-xl py-3 px-4 shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
+                            <!-- Important: Text must be relative z-10 to stay above curtain -->
                             <span class="relative z-10 flex items-center gap-2 pointer-events-none">
                                 <span id="btnText">Analyze</span>
                                 <div id="btnLoader" class="loader hidden"></div>
@@ -171,8 +345,15 @@
                 <!-- Error Message -->
                 <div id="errorContainer"
                     class="hidden mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
-                    <div class="text-red-600 dark:text-red-400 font-bold">Error:</div>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clip-rule="evenodd" />
+                    </svg>
                     <div>
+                        <h4 class="text-sm font-bold text-red-800 dark:text-red-300">Something went wrong</h4>
                         <p id="errorMsg" class="text-sm text-red-700 dark:text-red-400 mt-1"></p>
                     </div>
                 </div>
@@ -190,16 +371,28 @@
 
                 <!-- Action Buttons -->
                 <div class="flex gap-3">
-                    <button id="exportBtn"
+                    <!-- Export CSV Button -->
+                    <button onclick="downloadCSV()"
                         class="btn-directional group flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg">
                         <span class="relative z-10 flex items-center gap-2 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
                             <span>Export CSV</span>
                         </span>
                     </button>
 
-                    <button id="copyBtn"
+                    <!-- Copy Table Button -->
+                    <button onclick="copyTable()"
                         class="btn-directional group flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg">
                         <span class="relative z-10 flex items-center gap-2 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 012-2v-8a2 2 0 01-2-2h-8a2 2 0 01-2 2v8a2 2 0 012 2z" />
+                            </svg>
                             <span>Copy Table</span>
                         </span>
                     </button>
@@ -214,18 +407,18 @@
                         <thead
                             class="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider backdrop-blur-sm sticky top-0 z-10">
                             <tr>
-                                <th class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group"
-                                    data-sort="date">
+                                <th onclick="sortTable(0, 'date')"
+                                    class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group">
                                     Date <span
                                         class="sort-icon inline-block ml-1 opacity-30 group-hover:opacity-100">↕</span>
                                 </th>
-                                <th class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group"
-                                    data-sort="string">
+                                <th onclick="sortTable(1, 'string')"
+                                    class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group">
                                     Ver <span
                                         class="sort-icon inline-block ml-1 opacity-30 group-hover:opacity-100">↕</span>
                                 </th>
-                                <th class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group"
-                                    data-sort="number">
+                                <th onclick="sortTable(2, 'number')"
+                                    class="p-5 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition select-none group">
                                     Rating <span
                                         class="sort-icon inline-block ml-1 opacity-30 group-hover:opacity-100">↕</span>
                                 </th>
@@ -235,7 +428,9 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-transparent"></tbody>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-transparent">
+                            <!-- Rows injected via JS -->
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -265,8 +460,479 @@
     </footer>
 
     <!-- Logic Script -->
-    <script src="script.js"></script>
+    <script>
+        // Global storage for reviews
+        let allFetchedReviews = [];
 
+        // --- Theme Logic ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Init theme immediately
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+
+        // --- Custom Dropdown Logic ---
+        const countryOptions = [
+            { code: 'auto', name: 'Auto (URL)', flag: null },
+            { code: 'au', name: 'Australia', flag: 'au' },
+            { code: 'br', name: 'Brazil', flag: 'br' },
+            { code: 'ca', name: 'Canada', flag: 'ca' },
+            { code: 'cn', name: 'China', flag: 'cn' },
+            { code: 'fr', name: 'France', flag: 'fr' },
+            { code: 'de', name: 'Germany', flag: 'de' },
+            { code: 'it', name: 'Italy', flag: 'it' },
+            { code: 'jp', name: 'Japan', flag: 'jp' },
+            { code: 'pl', name: 'Poland', flag: 'pl' },
+            { code: 'es', name: 'Spain', flag: 'es' },
+            { code: 'gb', name: 'United Kingdom', flag: 'gb' },
+            { code: 'us', name: 'United States', flag: 'us' },
+        ];
+
+        function initCustomSelect() {
+            const optionsContainer = document.getElementById('customSelectOptions');
+
+            countryOptions.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0";
+
+                let iconHtml = opt.code === 'auto'
+                    ? `<span class="text-lg">🌍</span>`
+                    : `<img src="https://flagcdn.com/w40/${opt.flag}.png" alt="${opt.code}" class="w-6 h-auto rounded-sm shadow-sm">`;
+
+                div.innerHTML = `
+                    ${iconHtml}
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-200">${opt.name}</span>
+                `;
+
+                div.onclick = () => selectCountry(opt);
+                optionsContainer.appendChild(div);
+            });
+
+            document.addEventListener('click', (e) => {
+                const trigger = document.getElementById('customSelectTrigger');
+                const options = document.getElementById('customSelectOptions');
+                if (!trigger.contains(e.target) && !options.contains(e.target)) {
+                    options.classList.add('hidden');
+                    document.getElementById('selectArrow').classList.remove('rotate-180');
+                }
+            });
+        }
+
+        function toggleCustomSelect() {
+            const opts = document.getElementById('customSelectOptions');
+            const arrow = document.getElementById('selectArrow');
+            opts.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        function selectCountry(opt) {
+            document.getElementById('countrySelect').value = opt.code;
+
+            const flagSpan = document.getElementById('selectedFlag');
+            const textSpan = document.getElementById('selectedText');
+
+            if (opt.code === 'auto') {
+                flagSpan.innerHTML = '🌍';
+            } else {
+                flagSpan.innerHTML = `<img src="https://flagcdn.com/w40/${opt.flag}.png" alt="${opt.code}" class="w-6 h-auto rounded-sm shadow-sm">`;
+            }
+            textSpan.textContent = opt.name;
+
+            document.getElementById('customSelectOptions').classList.add('hidden');
+            document.getElementById('selectArrow').classList.remove('rotate-180');
+        }
+
+        // --- Extractor Logic ---
+
+        function updateLimitDisplay(val) {
+            document.getElementById('limitValueDisplay').innerText = val;
+            if (allFetchedReviews.length > 0) {
+                renderTable();
+            }
+        }
+
+        async function fetchReviews() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            const countrySelect = document.getElementById('countrySelect').value;
+
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const fetchBtn = document.getElementById('fetchBtn');
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMsg = document.getElementById('errorMsg');
+            const resultsContainer = document.getElementById('resultsContainer');
+
+            // Reset UI
+            errorContainer.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            allFetchedReviews = [];
+
+            if (!urlInput) {
+                showError("Please enter a valid App Store URL.");
+                return;
+            }
+
+            const idMatch = urlInput.match(/id(\d+)/);
+            if (!idMatch) {
+                showError("Could not find an App ID in the link. Look for 'id' followed by numbers.");
+                return;
+            }
+            const appId = idMatch[1];
+
+            let country = 'us';
+            if (countrySelect !== 'auto') {
+                country = countrySelect;
+            } else {
+                const countryMatch = urlInput.match(/apps\.apple\.com\/([a-z]{2})\//);
+                if (countryMatch) {
+                    country = countryMatch[1];
+                }
+            }
+
+            // Set Loading State
+            fetchBtn.disabled = true;
+            btnText.textContent = "Fetching...";
+            btnLoader.classList.remove('hidden');
+
+            try {
+                const rssUrl = `https://itunes.apple.com/${country}/rss/customerreviews/id=${appId}/sortBy=mostRecent/json`;
+
+                let response;
+                try {
+                    const proxyUrl1 = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+                    response = await fetch(proxyUrl1);
+                    if (!response.ok) throw new Error('Proxy 1 failed');
+                } catch (e1) {
+                    console.warn("Primary proxy failed, trying backup...", e1);
+                    try {
+                        const proxyUrl2 = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
+                        response = await fetch(proxyUrl2);
+                        if (!response.ok) throw new Error('Proxy 2 failed');
+                    } catch (e2) {
+                        throw new Error(`Failed to fetch reviews. Both proxy servers are unreachable or the app ID is invalid. Check your internet connection.`);
+                    }
+                }
+
+                const textData = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(textData);
+                } catch (e) {
+                    throw new Error("Invalid response received. There might be no reviews for this country.");
+                }
+
+                if (!data.feed || !data.feed.entry) {
+                    showError(`No reviews found for country code: ${country.toUpperCase()}. Try switching to US.`);
+                    resetBtn();
+                    return;
+                }
+
+                allFetchedReviews = Array.isArray(data.feed.entry) ? data.feed.entry : [data.feed.entry];
+
+                renderTable();
+
+                // Re-initialize hover effects for new buttons in DOM
+                setTimeout(initDirectionalButtons, 100);
+
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+            } finally {
+                resetBtn();
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector('#reviewsTable tbody');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsCount = document.getElementById('resultsCount');
+            const limit = parseInt(document.getElementById('limitRange').value);
+
+            tbody.innerHTML = '';
+
+            const entriesToRender = allFetchedReviews.slice(0, limit);
+
+            entriesToRender.forEach(entry => {
+                const updatedRaw = entry.updated ? entry.updated.label : null;
+                const dateObj = updatedRaw ? new Date(updatedRaw) : new Date();
+                const timestamp = dateObj.getTime();
+
+                const dateStr = dateObj.toLocaleDateString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric'
+                });
+
+                const rating = entry['im:rating'] ? parseInt(entry['im:rating'].label) : 0;
+                const version = entry['im:version'] ? entry['im:version'].label : '-';
+                const author = entry.author ? entry.author.name.label : 'Anonymous';
+                const title = entry.title ? entry.title.label : '';
+                const content = entry.content ? entry.content.label : '';
+
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= rating) {
+                        starsHtml += `<span class="text-yellow-400">★</span>`;
+                    } else {
+                        starsHtml += `<span class="text-slate-300 dark:text-slate-600">★</span>`;
+                    }
+                }
+
+                const row = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition border-b border-slate-100 dark:border-slate-800 last:border-0">
+                        <td class="p-5 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono" data-value="${timestamp}">${dateStr}</td>
+                        <td class="p-5 text-xs text-slate-400 dark:text-slate-500 font-mono" data-value="${version}">${version}</td>
+                        <td class="p-5 whitespace-nowrap text-lg leading-none" data-value="${rating}">${starsHtml}</td>
+                        <td class="p-5 text-sm font-medium text-slate-700 dark:text-slate-200">${author}</td>
+                        <td class="p-5 max-w-xl">
+                            <div class="font-bold text-slate-800 dark:text-white mb-1 text-sm">${title}</div>
+                            <div class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${content}</div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            resultsCount.textContent = entriesToRender.length;
+            resultsContainer.classList.remove('hidden');
+
+            document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '↕');
+        }
+
+        function downloadCSV() {
+            if (!allFetchedReviews || allFetchedReviews.length === 0) {
+                showError("No data available to export.");
+                return;
+            }
+
+            const limit = parseInt(document.getElementById('limitRange').value);
+            const dataToExport = allFetchedReviews.slice(0, limit);
+
+            const headers = ['Date', 'Version', 'Rating', 'Author', 'Title', 'Review'];
+
+            const rows = dataToExport.map(entry => {
+                const updatedRaw = entry.updated ? entry.updated.label : null;
+                const dateObj = updatedRaw ? new Date(updatedRaw) : new Date();
+                const dateStr = dateObj.toLocaleDateString();
+
+                const version = entry['im:version'] ? entry['im:version'].label : '';
+                const rating = entry['im:rating'] ? entry['im:rating'].label : '';
+                const author = entry.author ? entry.author.name.label : '';
+                const title = entry.title ? entry.title.label : '';
+                const content = entry.content ? entry.content.label : '';
+
+                const escape = (text) => {
+                    if (!text) return '""';
+                    return '"' + text.toString().replace(/"/g, '""') + '"';
+                };
+
+                return [
+                    escape(dateStr),
+                    escape(version),
+                    escape(rating),
+                    escape(author),
+                    escape(title),
+                    escape(content)
+                ].join(',');
+            });
+
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'app_store_reviews.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('CSV downloaded successfully', 'File saved');
+        }
+
+        // --- Sorting Logic ---
+        let sortDirection = 'asc';
+        let lastSortedColumn = -1;
+
+        function sortTable(n, type) {
+            const table = document.getElementById("reviewsTable");
+            let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            switching = true;
+            dir = "asc";
+
+            if (lastSortedColumn === n) {
+                dir = sortDirection === 'asc' ? 'desc' : 'asc';
+            }
+            sortDirection = dir;
+            lastSortedColumn = n;
+
+            document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '↕');
+            const currentHeader = table.rows[0].getElementsByTagName("TH")[n];
+            currentHeader.querySelector('.sort-icon').textContent = dir === 'asc' ? '↑' : '↓';
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                    let xVal = x.getAttribute('data-value') || x.textContent.toLowerCase();
+                    let yVal = y.getAttribute('data-value') || y.textContent.toLowerCase();
+
+                    if (type === 'number' || type === 'date') {
+                        xVal = parseFloat(xVal);
+                        yVal = parseFloat(yVal);
+                    }
+
+                    if (dir === "asc") {
+                        if (xVal > yVal) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir === "desc") {
+                        if (xVal < yVal) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                }
+            }
+        }
+
+        function resetBtn() {
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const fetchBtn = document.getElementById('fetchBtn');
+            fetchBtn.disabled = false;
+            fetchBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            btnText.textContent = "Analyze";
+            btnLoader.classList.add('hidden');
+        }
+
+        function showError(msg) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = msg;
+            errorContainer.classList.remove('hidden');
+        }
+
+        function showToast(title = 'Success', msg = '') {
+            const toast = document.getElementById('toast');
+            const titleEl = document.getElementById('toastTitle') || toast.querySelector('.font-bold');
+            const msgEl = document.getElementById('toastMessage') || toast.querySelector('.opacity-90');
+            if (titleEl) titleEl.textContent = title;
+            if (msgEl) msgEl.textContent = msg;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        function copyTable() {
+            const table = document.getElementById('reviewsTable');
+            const range = document.createRange();
+            range.selectNode(table);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                showToast('Success', 'Table copied to clipboard');
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            selection.removeAllRanges();
+        }
+
+        // --- Directional Hover Logic (Using Closest Edge) ---
+        function initDirectionalButtons() {
+            const buttons = document.querySelectorAll('.btn-directional');
+
+            buttons.forEach(btn => {
+                // Check if initialized
+                if (btn.classList.contains('js-hover-init')) return;
+                btn.classList.add('js-hover-init');
+
+                // Helper to set CSS vars based on mouse position
+                const updateVars = (e, isLeave = false) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const w = rect.width;
+                    const h = rect.height;
+
+                    // Distance to edges
+                    const distTop = y;
+                    const distBottom = h - y;
+                    const distLeft = x;
+                    const distRight = w - x;
+
+                    // Find min dist
+                    const min = Math.min(distTop, distBottom, distLeft, distRight);
+                    let direction; // 0:Top, 1:Right, 2:Bottom, 3:Left
+
+                    if (min === distTop) direction = 0;
+                    else if (min === distBottom) direction = 2;
+                    else if (min === distLeft) direction = 3;
+                    else direction = 1;
+
+                    // Determine Origin and Start Scale based on direction
+                    let origin, transformFrom;
+
+                    switch (direction) {
+                        case 0: // Top
+                            origin = 'top center';
+                            transformFrom = 'scale(1, 0)'; // Stretch vertically
+                            break;
+                        case 1: // Right
+                            origin = 'right center';
+                            transformFrom = 'scale(0, 1)'; // Stretch horizontally
+                            break;
+                        case 2: // Bottom
+                            origin = 'bottom center';
+                            transformFrom = 'scale(1, 0)'; // Stretch vertically
+                            break;
+                        case 3: // Left
+                            origin = 'left center';
+                            transformFrom = 'scale(0, 1)'; // Stretch horizontally
+                            break;
+                    }
+
+                    btn.style.setProperty('--origin', origin);
+                    btn.style.setProperty('--transform-from', transformFrom);
+                };
+
+                btn.addEventListener('mouseenter', (e) => updateVars(e, false));
+                btn.addEventListener('mouseleave', (e) => updateVars(e, true));
+            });
+        }
+
+        // Init everything
+        document.addEventListener('DOMContentLoaded', () => {
+            initCustomSelect();
+            initDirectionalButtons();
+        });
+    </script>
 </body>
 
 </html>
