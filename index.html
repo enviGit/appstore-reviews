@@ -19,22 +19,17 @@
                         }
                     },
                     animation: {
-                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
                         'toast-in': 'toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'toast-out': 'toastOut 0.3s ease-in forwards',
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
                     },
                     keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
                         toastIn: {
                             '0%': { transform: 'translateY(100%)', opacity: '0' },
                             '100%': { transform: 'translateY(0)', opacity: '1' },
                         },
-                        toastOut: {
-                            '0%': { transform: 'translateY(0)', opacity: '1' },
-                            '100%': { transform: 'translateY(100%)', opacity: '0' },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
                     }
                 }
@@ -96,14 +91,9 @@
         .dark input[type=range]::-webkit-slider-runnable-track {
             background: #475569;
         }
-
-        /* Fix for Emoji Flags on Windows */
-        select option, select {
-            font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI", sans-serif;
-        }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col font-sans">
+<body class="bg-gray-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col font-sans overflow-x-hidden">
 
     <!-- Background Decoration -->
     <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
@@ -112,7 +102,7 @@
     </div>
 
     <!-- Header -->
-    <header class="w-full py-6 px-6 flex justify-between items-center max-w-7xl mx-auto">
+    <header class="w-full py-6 px-6 flex justify-between items-center max-w-7xl mx-auto relative z-50">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white font-bold text-lg">
                 AS
@@ -134,16 +124,18 @@
 
     <main class="flex-grow max-w-7xl mx-auto w-full px-6 pb-12">
 
-        <!-- Hero & Input Section -->
-        <div class="max-w-4xl mx-auto text-center mb-10 animate-fade-in-up">
+        <!-- Hero Section -->
+        <div class="max-w-4xl mx-auto text-center mb-10">
             <h2 class="text-3xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
                 Analyze App Store Feedback
             </h2>
             <p class="text-slate-600 dark:text-slate-400 text-lg mb-8">
                 Fetch the latest user reviews directly from Apple's RSS feed.
             </p>
+        </div>
 
-            <!-- Input Card -->
+        <!-- Input Card (High Z-Index to stay above results) -->
+        <div class="relative z-30">
             <div class="glass-panel rounded-2xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-black/20 text-left">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                     
@@ -156,28 +148,28 @@
                         >
                     </div>
 
-                    <!-- Country Select -->
-                    <div class="md:col-span-4">
-                        <label for="countrySelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">Region</label>
-                        <div class="relative">
-                            <select id="countrySelect" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white cursor-pointer appearance-none">
-                                <option value="auto">🌍 Auto (from link)</option>
-                                <option value="us">🇺🇸 United States</option>
-                                <option value="pl">🇵🇱 Poland</option>
-                                <option value="de">🇩🇪 Germany</option>
-                                <option value="gb">🇬🇧 United Kingdom</option>
-                                <option value="fr">🇫🇷 France</option>
-                                <option value="jp">🇯🇵 Japan</option>
-                                <option value="it">🇮🇹 Italy</option>
-                                <option value="es">🇪🇸 Spain</option>
-                                <option value="ca">🇨🇦 Canada</option>
-                            </select>
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                    <!-- Custom Country Select -->
+                    <div class="md:col-span-4 relative z-50">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">Region</label>
+                        
+                        <!-- Custom Dropdown Trigger -->
+                        <button id="customSelectTrigger" onclick="toggleCustomSelect()" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
+                            <span class="flex items-center gap-3">
+                                <span id="selectedFlag" class="text-lg">🌍</span>
+                                <span id="selectedText" class="font-medium truncate">Auto (URL)</span>
+                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 transition-transform duration-200" id="selectArrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Options -->
+                        <div id="customSelectOptions" class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]">
+                            <!-- Options injected by JS -->
                         </div>
+
+                        <!-- Hidden Input to store value for logic -->
+                        <input type="hidden" id="countrySelect" value="auto">
                     </div>
                 </div>
 
@@ -234,9 +226,10 @@
             </div>
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsContainer" class="hidden animate-fade-in-up" style="animation-delay: 0.1s;">
-            <div class="flex justify-between items-center mb-4 px-1">
+        <!-- Results Section (Lower Z-Index to sit below input card) -->
+        <!-- Added animate-fade-in-up class here -->
+        <div id="resultsContainer" class="hidden relative z-10 animate-fade-in-up">
+            <div class="flex justify-between items-center mb-4 px-1 mt-8">
                 <div class="flex items-baseline gap-2">
                     <h2 class="text-xl font-bold text-slate-800 dark:text-white">Reviews</h2>
                     <span id="resultsCount" class="text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full"></span>
@@ -321,11 +314,86 @@
             }
         })();
 
+        // --- Custom Dropdown Logic (Alphabetical + Z-Index Fix) ---
+        const countryOptions = [
+            { code: 'auto', name: 'Auto (URL)', flag: null }, 
+            { code: 'au', name: 'Australia', flag: 'au' },
+            { code: 'br', name: 'Brazil', flag: 'br' },
+            { code: 'ca', name: 'Canada', flag: 'ca' },
+            { code: 'cn', name: 'China', flag: 'cn' },
+            { code: 'fr', name: 'France', flag: 'fr' },
+            { code: 'de', name: 'Germany', flag: 'de' },
+            { code: 'it', name: 'Italy', flag: 'it' },
+            { code: 'jp', name: 'Japan', flag: 'jp' },
+            { code: 'pl', name: 'Poland', flag: 'pl' },
+            { code: 'es', name: 'Spain', flag: 'es' },
+            { code: 'gb', name: 'United Kingdom', flag: 'gb' },
+            { code: 'us', name: 'United States', flag: 'us' },
+        ];
+
+        function initCustomSelect() {
+            const optionsContainer = document.getElementById('customSelectOptions');
+            
+            countryOptions.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0";
+                
+                // Content construction
+                let iconHtml = opt.code === 'auto' 
+                    ? `<span class="text-lg">🌍</span>`
+                    : `<img src="https://flagcdn.com/w40/${opt.flag}.png" alt="${opt.code}" class="w-6 h-auto rounded-sm shadow-sm">`;
+                
+                div.innerHTML = `
+                    ${iconHtml}
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-200">${opt.name}</span>
+                `;
+
+                div.onclick = () => selectCountry(opt);
+                optionsContainer.appendChild(div);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const trigger = document.getElementById('customSelectTrigger');
+                const options = document.getElementById('customSelectOptions');
+                if (!trigger.contains(e.target) && !options.contains(e.target)) {
+                    options.classList.add('hidden');
+                    document.getElementById('selectArrow').classList.remove('rotate-180');
+                }
+            });
+        }
+
+        function toggleCustomSelect() {
+            const opts = document.getElementById('customSelectOptions');
+            const arrow = document.getElementById('selectArrow');
+            opts.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        function selectCountry(opt) {
+            document.getElementById('countrySelect').value = opt.code;
+            
+            const flagSpan = document.getElementById('selectedFlag');
+            const textSpan = document.getElementById('selectedText');
+            
+            if (opt.code === 'auto') {
+                flagSpan.innerHTML = '🌍';
+            } else {
+                flagSpan.innerHTML = `<img src="https://flagcdn.com/w40/${opt.flag}.png" alt="${opt.code}" class="w-6 h-auto rounded-sm shadow-sm">`;
+            }
+            textSpan.textContent = opt.name;
+
+            document.getElementById('customSelectOptions').classList.add('hidden');
+            document.getElementById('selectArrow').classList.remove('rotate-180');
+        }
+
+        initCustomSelect();
+
+
         // --- Extractor Logic ---
         
         function updateLimitDisplay(val) {
             document.getElementById('limitValueDisplay').innerText = val;
-            // Only re-render if we already have data
             if (allFetchedReviews.length > 0) {
                 renderTable();
             }
@@ -333,7 +401,7 @@
 
         async function fetchReviews() {
             const urlInput = document.getElementById('urlInput').value.trim();
-            const countrySelect = document.getElementById('countrySelect').value;
+            const countrySelect = document.getElementById('countrySelect').value; 
             
             // Elements
             const btnText = document.getElementById('btnText');
@@ -346,9 +414,8 @@
             // Reset UI
             errorContainer.classList.add('hidden');
             resultsContainer.classList.add('hidden');
-            allFetchedReviews = []; // Clear previous data
+            allFetchedReviews = []; 
             
-            // Validation
             if (!urlInput) {
                 showError("Please enter a valid App Store URL.");
                 return;
@@ -379,15 +446,24 @@
             btnLoader.classList.remove('hidden');
 
             try {
-                // Fetch Data via AllOrigins Proxy
-                // Always fetch default (50) from Apple, do not use limit param in URL
+                // Fetch Data with FALLBACK Strategy
                 const rssUrl = `https://itunes.apple.com/${country}/rss/customerreviews/id=${appId}/sortBy=mostRecent/json`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+                
+                let response;
 
-                const response = await fetch(proxyUrl);
-
-                if (!response.ok) {
-                    throw new Error(`Connection error: ${response.status}`);
+                try {
+                    const proxyUrl1 = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+                    response = await fetch(proxyUrl1);
+                    if (!response.ok) throw new Error('Proxy 1 failed');
+                } catch (e1) {
+                    console.warn("Primary proxy failed, trying backup...", e1);
+                    try {
+                        const proxyUrl2 = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
+                        response = await fetch(proxyUrl2);
+                        if (!response.ok) throw new Error('Proxy 2 failed');
+                    } catch (e2) {
+                         throw new Error(`Failed to fetch reviews. Both proxy servers are unreachable or the app ID is invalid. Check your internet connection.`);
+                    }
                 }
 
                 const textData = await response.text();
@@ -404,10 +480,8 @@
                     return;
                 }
 
-                // Store data globally
                 allFetchedReviews = Array.isArray(data.feed.entry) ? data.feed.entry : [data.feed.entry];
                 
-                // Initial Render
                 renderTable();
 
             } catch (err) {
@@ -426,7 +500,6 @@
 
             tbody.innerHTML = '';
 
-            // Apply limit locally
             const entriesToRender = allFetchedReviews.slice(0, limit);
 
             entriesToRender.forEach(entry => {
@@ -471,7 +544,6 @@
             resultsCount.textContent = entriesToRender.length;
             resultsContainer.classList.remove('hidden');
             
-            // Reset sort icons visually since we just re-rendered default order
             document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '↕');
         }
 
