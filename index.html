@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Store Reviews Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-6 font-sans">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">App Store Reviews Extractor</h1>
+            <p class="text-slate-600">Paste an App Store link to fetch the latest reviews (RSS Feed).</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-grow w-full">
+                    <label for="urlInput" class="block text-sm font-medium text-slate-700 mb-1">App Store Link</label>
+                    <input type="text" id="urlInput" 
+                        placeholder="e.g. https://apps.apple.com/us/app/instagram/id389801252" 
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    >
+                </div>
+                
+                <div class="w-full md:w-48">
+                    <label for="countrySelect" class="block text-sm font-medium text-slate-700 mb-1">Country (Store)</label>
+                    <select id="countrySelect" class="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="auto">Auto (from link)</option>
+                        <option value="us">United States (US)</option>
+                        <option value="pl">Poland (PL)</option>
+                        <option value="de">Germany (DE)</option>
+                        <option value="gb">United Kingdom (GB)</option>
+                        <option value="fr">France (FR)</option>
+                    </select>
+                </div>
+
+                <button onclick="getReviews()" id="fetchBtn" class="w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition flex items-center justify-center gap-2 min-w-[120px]">
+                    <span id="btnText">Get Reviews</span>
+                    <div id="btnLoader" class="loader hidden"></div>
+                </button>
+            </div>
+            <!-- Error message container -->
+            <div id="errorContainer" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <p class="font-bold">Error occurred:</p>
+                <p id="errorMsg"></p>
+                <p class="mt-2 text-xs text-red-500">Tip: If the link is correct, try changing the country to "United States" as it usually has the most reviews. Local stores often lack reviews for less popular apps.</p>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-slate-800">Results <span id="resultsCount" class="text-sm font-normal text-slate-500 ml-2"></span></h2>
+                <button onclick="copyTable()" class="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded hover:bg-blue-50 transition">
+                    Copy to clipboard
+                </button>
+            </div>
+
+            <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+                <table class="w-full text-left border-collapse" id="reviewsTable">
+                    <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
+                        <tr>
+                            <th class="p-4 border-b border-slate-200 whitespace-nowrap">Datetime</th>
+                            <th class="p-4 border-b border-slate-200 whitespace-nowrap">Country</th>
+                            <th class="p-4 border-b border-slate-200 whitespace-nowrap">Rating</th>
+                            <th class="p-4 border-b border-slate-200 whitespace-nowrap">Version</th>
+                            <th class="p-4 border-b border-slate-200 whitespace-nowrap">Author</th>
+                            <th class="p-4 border-b border-slate-200 min-w-[200px]">Title</th>
+                            <th class="p-4 border-b border-slate-200 min-w-[300px]">Content</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
+                        <!-- Rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        async function getReviews() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            const countrySelect = document.getElementById('countrySelect').value;
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const fetchBtn = document.getElementById('fetchBtn');
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMsg = document.getElementById('errorMsg');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const tbody = document.querySelector('#reviewsTable tbody');
+            const resultsCount = document.getElementById('resultsCount');
+
+            // Reset UI
+            errorContainer.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            tbody.innerHTML = '';
+            
+            if (!urlInput) {
+                showError("Please enter an App Store link.");
+                return;
+            }
+
+            // Extract App ID
+            const idMatch = urlInput.match(/id(\d+)/);
+            if (!idMatch) {
+                showError("App ID not found in the link. Ensure the link contains 'id' followed by digits.");
+                return;
+            }
+            const appId = idMatch[1];
+
+            // Determine Country
+            let country = 'us'; // default fallback
+            if (countrySelect !== 'auto') {
+                country = countrySelect;
+            } else {
+                const countryMatch = urlInput.match(/apps\.apple\.com\/([a-z]{2})\//);
+                if (countryMatch) {
+                    country = countryMatch[1];
+                }
+            }
+
+            // UI Loading State
+            fetchBtn.disabled = true;
+            btnText.textContent = "Fetching...";
+            btnLoader.classList.remove('hidden');
+
+            try {
+                // Stable RSS endpoint structure.
+                const rssUrl = `https://itunes.apple.com/${country}/rss/customerreviews/id=${appId}/sortBy=mostRecent/json`;
+                
+                // Using allorigins proxy
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+
+                console.log("Fetching:", proxyUrl); // Debug log
+
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Apple server or proxy returned an error: ${response.status} ${response.statusText}`);
+                }
+
+                // Handling text parsing manually to avoid JSON parse errors on empty bodies
+                const textData = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(textData);
+                } catch (e) {
+                    throw new Error("Received invalid data (not JSON). Likely no reviews in this country.");
+                }
+                
+                if (!data.feed || !data.feed.entry) {
+                    showError(`Data fetched, but the review list is empty for country: ${country.toUpperCase()}. Try changing the country.`);
+                    resetBtn();
+                    return;
+                }
+
+                const entries = Array.isArray(data.feed.entry) ? data.feed.entry : [data.feed.entry];
+
+                entries.forEach(entry => {
+                    const datetime = entry.updated ? new Date(entry.updated.label).toLocaleString() : '-';
+                    const rating = entry['im:rating'] ? entry['im:rating'].label : '0';
+                    const version = entry['im:version'] ? entry['im:version'].label : '-';
+                    const author = entry.author ? entry.author.name.label : 'Anonymous';
+                    const title = entry.title ? entry.title.label : '-';
+                    const content = entry.content ? entry.content.label : '-';
+                    
+                    const stars = '★'.repeat(parseInt(rating)) + '☆'.repeat(5 - parseInt(rating));
+
+                    const row = `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-4 text-xs text-slate-500 whitespace-nowrap">${datetime}</td>
+                            <td class="p-4 font-medium uppercase text-xs">${country}</td>
+                            <td class="p-4 text-orange-400 whitespace-nowrap" title="${rating}/5">${stars}</td>
+                            <td class="p-4 text-xs font-mono text-slate-500">${version}</td>
+                            <td class="p-4 font-medium text-slate-900">${author}</td>
+                            <td class="p-4 font-semibold text-slate-800">${title}</td>
+                            <td class="p-4 text-slate-600 leading-relaxed">${content}</td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+
+                resultsCount.textContent = `(Found: ${entries.length})`;
+                resultsContainer.classList.remove('hidden');
+
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+            } finally {
+                resetBtn();
+            }
+        }
+
+        function resetBtn() {
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const fetchBtn = document.getElementById('fetchBtn');
+            fetchBtn.disabled = false;
+            btnText.textContent = "Get Reviews";
+            btnLoader.classList.add('hidden');
+        }
+
+        function showError(msg) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = msg;
+            errorContainer.classList.remove('hidden');
+        }
+
+        function copyTable() {
+            const table = document.getElementById('reviewsTable');
+            const range = document.createRange();
+            range.selectNode(table);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                alert('Table copied to clipboard!');
+            } catch (err) {
+                alert('Copy error.');
+            }
+            selection.removeAllRanges();
+        }
+    </script>
+</body>
+</html>
