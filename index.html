@@ -298,8 +298,7 @@
                                     </svg>
                                     <div
                                         class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 hidden group-hover:block normal-case tracking-normal font-normal text-left leading-relaxed">
-                                        Apple limits their public RSS feed to 50 items. We can't fetch more without a
-                                        paid developer account and a backend server.
+                                        Apple limits their public RSS feed to 50 items.
                                         <div
                                             class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800">
                                         </div>
@@ -812,6 +811,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             initCustomSelect();
             initDirectionalButtons();
+
+            // Fix Dropdown Logic: Add missing click listener to trigger
+            document.getElementById('customSelectTrigger').addEventListener('click', toggleCustomSelect);
 
             document.getElementById('fetchBtn').addEventListener('click', fetchReviews);
             document.getElementById('exportBtn').addEventListener('click', downloadCSV);
